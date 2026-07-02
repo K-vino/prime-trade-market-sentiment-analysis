@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Market Sentiment vs. Trader Performance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #080B11;
+            --card-bg: rgba(17, 22, 34, 0.85);
+            --border-color: rgba(255, 255, 255, 0.07);
+            --primary: #8B5CF6;
+            --primary-glow: rgba(139, 92, 246, 0.4);
+            --secondary: #6366F1;
+            --secondary-glow: rgba(99, 102, 241, 0.3);
+            --accent: #10B981;
+            --accent-red: #EF4444;
+            --text-main: #F3F4F6;
+            --text-muted: #9CA3AF;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.5;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(99, 102, 241, 0.12) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(10, 14, 23, 0.95);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+            z-index: 100;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 3rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .logo-text {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #FFFFFF, #9CA3AF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .nav-item {
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .nav-item.active {
+            color: #FFFFFF;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(99, 102, 241, 0.1));
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content Panel */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex-grow: 1;
+            padding: 3rem;
+            max-width: 1400px;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header-title h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #FFFFFF, #E5E7EB);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+
+        .badge-regime {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(99, 102, 241, 0.1));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+
+        /* Tabs Panels */
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dashboard Overview Grid */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: rgba(139, 92, 246, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: -0.5px;
+        }
+
+        .metric-sub {
+            font-size: 0.8rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .metric-sub.negative {
+            color: var(--accent-red);
+        }
+
+        /* Main Section Card styling */
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-left: 4px solid var(--primary);
+            padding-left: 0.75rem;
+        }
+
+        /* Grid Layouts */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .grid-3col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        /* Tables styling */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .tag-win {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .tag-loss {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .tag-neutral {
+            background: rgba(156, 163, 175, 0.15);
+            color: var(--text-muted);
+            border: 1px solid rgba(156, 163, 175, 0.2);
+        }
+
+        /* Plot Image styling */
+        .plot-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .plot-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.03);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .plot-img:hover {
+            transform: scale(1.015);
+        }
+
+        .plot-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* Insights list styling */
+        .insight-card {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            transition: all 0.2s ease;
+        }
+
+        .insight-card:hover {
+            border-color: rgba(139, 92, 246, 0.2);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .insight-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .insight-content h4 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            color: #FFFFFF;
+        }
+
+        .insight-content p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Recommendations list styling */
+        .rec-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .rec-card {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.75rem;
+        }
+
+        .rec-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #FFFFFF;
+        }
+
+        .rec-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .rec-card:nth-child(2) .rec-icon {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: var(--secondary);
+        }
+
+        .rec-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .rec-list li {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            padding-left: 1.25rem;
+            position: relative;
+        }
+
+        .rec-list li::before {
+            content: "•";
+            color: var(--primary);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        /* Welch's T-test visual display */
+        .stats-display {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 14px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .stats-val-group {
+            display: flex;
+            gap: 3rem;
+        }
+
+        .stats-val-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stats-val {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #FFFFFF;
+        }
+
+        .stats-verdict {
+            margin-top: 0.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+        }
+
+        /* Large Image Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            padding-top: 50px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.9);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 80%;
+            max-height: 80%;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-caption {
+            margin: auto;
+            display: block;
+            width: 80%;
+            text-align: center;
+            color: var(--text-muted);
+            padding: 15px 0;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: var(--text-muted);
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #FFFFFF;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">📊</div>
+                <div class="logo-text">HYPER REGIMES</div>
+            </div>
+            <ul class="nav-list">
+                <li class="nav-item active" onclick="switchTab('overview', this)">
+                    <span>🏠</span> Overview
+                </li>
+                <li class="nav-item" onclick="switchTab('eda', this)">
+                    <span>📈</span> Exploratory Data
+                </li>
+                <li class="nav-item" onclick="switchTab('sentiment', this)">
+                    <span>⚖️</span> Sentiment Comparison
+                </li>
+                <li class="nav-item" onclick="switchTab('behavior', this)">
+                    <span>👥</span> Trader Behavior
+                </li>
+                <li class="nav-item" onclick="switchTab('insights', this)">
+                    <span>💡</span> Strategic Insights
+                </li>
+                <li class="nav-item" onclick="switchTab('recommendations', this)">
+                    <span>🛡️</span> Recommendations
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header>
+                <div class="header-title">
+                    <h1 id="panel-title">Overview & Executive Summary</h1>
+                    <p id="panel-subtitle">Hyperliquid Perpetual Swap Trader Performance vs. Daily Bitcoin Sentiment</p>
+                </div>
+                <div class="badge-regime">
+                    Regime: Welch's Insignificant (P=0.1416)
+                </div>
+            </header>
+
+            <!-- 1. OVERVIEW PANEL -->
+            <section id="panel-overview" class="tab-panel active">
+                <div class="overview-grid">
+                    <div class="metric-card">
+                        <span class="metric-label">Total Trade Executions</span>
+                        <span class="metric-value">190,004</span>
+                        <span class="metric-sub">Deduplicated from 211,224</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Unique Trading Accounts</span>
+                        <span class="metric-value">32</span>
+                        <span class="metric-sub">Active Perpetual Swap Wallets</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Total Realized Net Return</span>
+                        <span class="metric-value">+$9.51M</span>
+                        <span class="metric-sub">PnL minus fees & rebates</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Sentiment Records Span</span>
+                        <span class="metric-value">2,644 Days</span>
+                        <span class="metric-sub">2018 - 2025 Daily Index</span>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h2 class="section-title">Executive Summary</h2>
+                    <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 1.05rem; line-height: 1.6;">
+                        This interactive dashboard maps and analyzes transaction-level data from 32 perpetual contract traders on the Hyperliquid DEX against the daily Bitcoin Fear and Greed Index. The goal is to uncover whether market sentiment acts as a driver of trade-level alpha or if it serves as a lagging indicator of behavioral biases.
+                    </p>
+                    <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.6;">
+                        Our core statistical test (Welch's T-Test) shows that **trade PnL is not statistically different between Fear and Greed regimes** (p-value: 0.1416). However, trader behavior—specifically trading frequency, order sizing, and leverage categories—is strongly affected by sentiment. Top-performing whales trade systematically and remain unaffected by market sentiment, whereas retail participants exhibit positive correlation with crowd optimism, leaving them vulnerable to sudden leverage flushes.
+                    </p>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="section-card">
+                        <h2 class="section-title">Core Hypotheses Mapping</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Hypothesis</th>
+                                        <th>Verdict</th>
+                                        <th>Key Findings</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>H1: Profitability Shift</strong></td>
+                                        <td><span class="tag tag-neutral">FAILED</span></td>
+                                        <td>P-value of 0.1416 shows sentiment does not dictate transaction PnL.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>H2: Leverage & Sizing</strong></td>
+                                        <td><span class="tag tag-win">SUPPORTED</span></td>
+                                        <td>Average sizes are larger during Fear ($8.6k) vs Greed ($5.8k).</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>H3: Overtrading</strong></td>
+                                        <td><span class="tag tag-win">SUPPORTED</span></td>
+                                        <td>Trade counts during Extreme Greed are double those in Extreme Fear.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>H4: Trader Tiers</strong></td>
+                                        <td><span class="tag tag-win">SUPPORTED</span></td>
+                                        <td>Whales show near-zero sentiment sensitivity (0.02) compared to retail.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <h2 class="section-title">Data Pipeline Architecture</h2>
+                        <ul style="list-style: none; display: flex; flex-direction: column; gap: 1rem; color: var(--text-muted); font-size: 0.95rem;">
+                            <li>⚙️ <strong>Standardization:</strong> Column headers normalized to lower_snake_case.</li>
+                            <li>⏰ <strong>Timezone Shift:</strong> Raw decimal IST timestamps parsed and shifted by -05:30 to align with UTC sentiment index dates.</li>
+                            <li>🔄 <strong>Deduplication:</strong> 21,220 duplicate executions removed based on key transactional fields.</li>
+                            <li>💰 <strong>Rebate Adjustment:</strong> Negative fees are correctly processed as maker rebates, enhancing net returns.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. EDA PANEL -->
+            <section id="panel-eda" class="tab-panel">
+                <div class="grid-2col">
+                    <div class="plot-container">
+                        <img src="./plots/profit_distribution.png" alt="Realized PnL Distribution" class="plot-img" onclick="openModal(this)">
+                        <div class="plot-desc">Closed PnL Distribution (fat-tailed curve clipped at -$200 to +$200)</div>
+                    </div>
+                    <div class="plot-container">
+                        <img src="./plots/sentiment_distribution.png" alt="Trade Counts by Sentiment Class" class="plot-img" onclick="openModal(this)">
+                        <div class="plot-desc">Trade counts concentrated in extreme sentiment regimes (Fear and Greed)</div>
+                    </div>
+                </div>
+                <div class="grid-2col">
+                    <div class="plot-container">
+                        <img src="./plots/trade_size_by_side.png" alt="Trade Size Category by Side" class="plot-img" onclick="openModal(this)">
+                        <div class="plot-desc">Trade size distribution (MICRO, RETAIL, PRO, WHALE) by Buy/Sell side</div>
+                    </div>
+                    <div class="plot-container">
+                        <img src="./plots/correlation_matrix.png" alt="Metrics Correlation Heatmap" class="plot-img" onclick="openModal(this)">
+                        <div class="plot-desc">Correlation Heatmap between PnL, size, fees, and daily sentiment value</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. SENTIMENT COMPARISON PANEL -->
+            <section id="panel-sentiment" class="tab-panel">
+                <div class="grid-2col">
+                    <div class="section-card">
+                        <h2 class="section-title">Fear vs. Greed Descriptive Statistics</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Sentiment</th>
+                                        <th>Trades</th>
+                                        <th>Win Rate</th>
+                                        <th>Avg Size</th>
+                                        <th>Mean PnL</th>
+                                        <th>Total PnL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="background: rgba(239, 68, 68, 0.05);">
+                                        <td><strong>Extreme Fear</strong></td>
+                                        <td>18,138</td>
+                                        <td>42.21%</td>
+                                        <td>$6,146.46</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$55.37</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$1.00M</td>
+                                    </tr>
+                                    <tr style="background: rgba(239, 68, 68, 0.02);">
+                                        <td><strong>Fear</strong></td>
+                                        <td>53,836</td>
+                                        <td>41.56%</td>
+                                        <td>$8,679.07</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$47.67</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$2.57M</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Neutral</strong></td>
+                                        <td>35,149</td>
+                                        <td>35.49%</td>
+                                        <td>$5,303.05</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$33.94</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$1.19M</td>
+                                    </tr>
+                                    <tr style="background: rgba(16, 185, 129, 0.02);">
+                                        <td><strong>Greed</strong></td>
+                                        <td>45,228</td>
+                                        <td>38.75%</td>
+                                        <td>$5,843.03</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$49.57</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$2.24M</td>
+                                    </tr>
+                                    <tr style="background: rgba(16, 185, 129, 0.05);">
+                                        <td><strong>Extreme Greed</strong></td>
+                                        <td>37,653</td>
+                                        <td>45.00%</td>
+                                        <td>$3,274.58</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$66.68</td>
+                                        <td style="color: var(--accent); font-weight: 600;">+$2.51M</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="stats-display">
+                        <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; text-transform: uppercase; color: var(--text-muted);">Welch's T-Test Results</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px; margin-bottom: 1rem;">
+                            Testing the significance of trade net PnL difference between Fear and Greed regimes.
+                        </p>
+                        <div class="stats-val-group">
+                            <div class="stats-val-box">
+                                <span class="stats-val" style="color: var(--primary);">-1.4698</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">T-STATISTIC</span>
+                            </div>
+                            <div class="stats-val-box">
+                                <span class="stats-val" style="color: var(--accent);">0.1416</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">P-VALUE</span>
+                            </div>
+                        </div>
+                        <div class="stats-verdict">
+                            Verdict: FAILED TO REJECT (Statistically Insignificant)
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.4; margin-top: 1rem; max-width: 360px;">
+                            Since P > 0.05, we conclude that market sentiment does not directly guarantee transaction-level profit shifts. Alpha is strategy-dependent.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="plot-container">
+                        <img src="./plots/pnl_by_sentiment.png" alt="PnL by Sentiment Boxplot" class="plot-img" onclick="openModal(this)">
+                        <div class="plot-desc">Comparative Boxplot of Net PnL across Sentiment Classes (outliers hidden)</div>
+                    </div>
+                    <div class="plot-container">
+                        <img src="./plots/trader_tier_performance_sentiment.png" alt="Performance by Tier & Sentiment" class="plot-img" onclick="openModal(this)">
+                        <div class="plot-desc">Average Net PnL per trade across different trader tiers and sentiment states</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. TRADER BEHAVIOR PANEL -->
+            <section id="panel-behavior" class="tab-panel">
+                <div class="section-card">
+                    <h2 class="section-title">Top & Bottom Performers Profile</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Account / Wallet</th>
+                                    <th>Tier</th>
+                                    <th>Trades</th>
+                                    <th>Win Rate</th>
+                                    <th>Mean Size</th>
+                                    <th>Net PnL (USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background: rgba(16, 185, 129, 0.03);">
+                                    <td><strong>1</strong></td>
+                                    <td>0xb1231a4a2dd02f2276fa3c5e2a2f3436e6bfed23</td>
+                                    <td><span class="tag tag-win">TOP TRADER</span></td>
+                                    <td>13,649</td>
+                                    <td>32.90%</td>
+                                    <td>$4,074.26</td>
+                                    <td style="color: var(--accent); font-weight: 600;">+$2,080,762.00</td>
+                                </tr>
+                                <tr style="background: rgba(16, 185, 129, 0.01);">
+                                    <td><strong>2</strong></td>
+                                    <td>0x083384f897ee0f19899168e3b1bec365f52a9012</td>
+                                    <td><span class="tag tag-win">TOP TRADER</span></td>
+                                    <td>2,558</td>
+                                    <td>35.81%</td>
+                                    <td>$22,513.51</td>
+                                    <td style="color: var(--accent); font-weight: 600;">+$1,465,475.00</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>3</strong></td>
+                                    <td>0xbaaaf6571ab7d571043ff1e313a9609a10637864</td>
+                                    <td><span class="tag tag-win">TOP TRADER</span></td>
+                                    <td>17,111</td>
+                                    <td>47.81%</td>
+                                    <td>$3,843.68</td>
+                                    <td style="color: var(--accent); font-weight: 600;">+$906,678.20</td>
+                                </tr>
+                                <tr style="background: rgba(239, 68, 68, 0.01);">
+                                    <td><strong>31</strong></td>
+                                    <td>0x271b280974205ca63b716753467d5a371de622ab</td>
+                                    <td><span class="tag tag-loss">BOTTOM TRADER</span></td>
+                                    <td>3,345</td>
+                                    <td>31.87%</td>
+                                    <td>$9,631.82</td>
+                                    <td style="color: var(--accent-red); font-weight: 600;">-$80,632.64</td>
+                                </tr>
+                                <tr style="background: rgba(239, 68, 68, 0.03);">
+                                    <td><strong>32</strong></td>
+                                    <td>0x8170715b3b381dffb7062c0298972d4727a0a63b</td>
+                                    <td><span class="tag tag-loss">BOTTOM TRADER</span></td>
+                                    <td>4,028</td>
+                                    <td>38.63%</td>
+                                    <td>$2,428.54</td>
+                                    <td style="color: var(--accent-red); font-weight: 600;">-$175,997.81</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="section-card">
+                        <h2 class="section-title">K-Means Unsupervised Behavioral Clusters</h2>
+                        <ul style="list-style: none; display: flex; flex-direction: column; gap: 1rem; color: var(--text-muted); font-size: 0.95rem;">
+                            <li>
+                                <strong style="color: #FFFFFF;">Cluster 0: Systematic Market-Making Whales (n=5)</strong><br>
+                                High-frequency execution (avg: 16k trades), large size ($14,491.72), and near-zero sentiment sensitivity (0.0206). Avg Net PnL: **+$1.19 Million** per trader.
+                            </li>
+                            <li>
+                                <strong style="color: #FFFFFF;">Cluster 1: Long-Biased Trend Followers (n=17)</strong><br>
+                                Smaller transaction sizes ($3,097.68) and positive correlation with sentiment (0.1172). Yield profits in bull cycles (Greed) but bleed heavily during Fear regimes.
+                            </li>
+                            <li>
+                                <strong style="color: #FFFFFF;">Cluster 2: Counter-Cyclical Hedgers (n=10)</strong><br>
+                                Lower win rate (34.4%) and negative correlation with sentiment (-0.0655). Performance improves during capitulation events (Fear).
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="plot-container">
+                        <img src="./plots/trader_clusters.png" alt="K-Means PCA Scatter Plot" class="plot-img" onclick="openModal(this)">
+                        <div class="plot-desc">Unsupervised K-Means clustering of active Hyperliquid traders (PCA Projection)</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. STRATEGIC INSIGHTS PANEL -->
+            <section id="panel-insights" class="tab-panel">
+                <div class="grid-2col">
+                    <div class="insight-card">
+                        <div class="insight-num">1</div>
+                        <div class="insight-content">
+                            <h4>Sentiment-Independence is the True Edge</h4>
+                            <p>Top traders (Cluster 0) demonstrate a sentiment sensitivity index near zero (0.02). Profitable market participants execute systematic strategies and do not trade based on crowd fear or greed.</p>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-num">2</div>
+                        <div class="insight-content">
+                            <h4>The Win-Rate Paradox</h4>
+                            <p>The highest earning trader ($2.08 Million) operates with only a 32.90% win rate. They succeed entirely on a positive risk-to-reward skew—cutting losses quickly and riding trends.</p>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-num">3</div>
+                        <div class="insight-content">
+                            <h4>Euphoric Overtrading</h4>
+                            <p>Trades executed during Extreme Greed (37,653) are more than double the volume executed during Extreme Fear (18,138), reflecting heavy retail overtrading during bullish regimes.</p>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-num">4</div>
+                        <div class="insight-content">
+                            <h4>Neutral Regime Whipsaw</h4>
+                            <p>Neutral sentiment regimes generate the lowest average net PnL ($33.94 USD). Sideways market phases frequently trap leverage traders in whipsaw stop-losses.</p>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-num">5</div>
+                        <div class="insight-content">
+                            <h4>Liquidity Maker Rebates</h4>
+                            <p>Negative fees (maker rebates) constitute a significant revenue buffer for Cluster 0 whales, shielding their bottom-line from transaction friction during volatile regimes.</p>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-num">6</div>
+                        <div class="insight-content">
+                            <h4>Contrarian Sizing by Smart Money</h4>
+                            <p>Average transaction size is largest during moderate Fear ($8,679.07 USD) and smallest in Extreme Greed ($3,274.58 USD), indicating institutional scaling during capitulations.</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">
+                        *For the full list of all 15 detailed quantitative insights, see the <strong>final_report.md</strong> document inside your workspace.
+                    </p>
+                </div>
+            </section>
+
+            <!-- 6. RECOMMENDATIONS PANEL -->
+            <section id="panel-recommendations" class="tab-panel">
+                <div class="rec-grid">
+                    <div class="rec-card">
+                        <div class="rec-header">
+                            <div class="rec-icon">🛡️</div>
+                            <span>Platform Risk Management</span>
+                        </div>
+                        <ul class="rec-list">
+                            <li>
+                                <strong>Dynamic Leverage Caps:</strong> Cap maximum leverage limits (e.g., reduce from 50x to 20x) automatically when the 7-day moving average of the Fear & Greed Index rises above 80 (Extreme Greed) to mitigate systemic liquidation risk.
+                            </li>
+                            <li>
+                                <strong>Counter-Cyclical Fee Rebates:</strong> Increase maker rebates during Neutral/sideways market periods to incentivize liquidity provision when volume naturally drops.
+                            </li>
+                            <li>
+                                <strong>Sentiment UI Warnings:</strong> Incorporate high-sentiment warnings directly in the trading terminal interface to protect retail users from over-leveraged FOMO.
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="rec-card">
+                        <div class="rec-header">
+                            <div class="rec-icon">⚡</div>
+                            <span>Trading & Allocation Framework</span>
+                        </div>
+                        <ul class="rec-list">
+                            <li>
+                                <strong>Contrarian Sizing Rules:</strong> Scale up capital deployment and position size during market corrections (Extreme Fear) and dynamically scale down during extreme euphoria.
+                            </li>
+                            <li>
+                                <strong>Systematic Stop-Loss Rules:</strong> Require strict trailing stop-losses for retail trend-followers (Cluster 1) to protect capital during sudden sentiment flushes.
+                            </li>
+                            <li>
+                                <strong>Maker-Order Bias:</strong> Enforce limit orders (maker execution) during high volatility phases to capture rebates and minimize market spread slippage.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="modal" onclick="closeModal()">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <img class="modal-content" id="modal-img">
+        <div id="modal-caption" class="modal-caption"></div>
+    </div>
+
+    <script>
+        function switchTab(tabId, el) {
+            // Remove active classes
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+            
+            // Add active class to clicked element and corresponding panel
+            el.classList.add('active');
+            document.getElementById('panel-' + tabId).classList.add('active');
+            
+            // Update titles
+            const titleMap = {
+                'overview': { title: 'Overview & Executive Summary', subtitle: 'Hyperliquid Perpetual Swap Trader Performance vs. Daily Bitcoin Sentiment' },
+                'eda': { title: 'Exploratory Data Analysis', subtitle: 'Statistical Distributions & Metric Correlations' },
+                'sentiment': { title: 'Sentiment Comparison (Fear vs. Greed)', subtitle: 'Comparative Statistics and Welch\'s T-Test Evaluation' },
+                'behavior': { title: 'Trader Behavior & Clusters', subtitle: 'Performance Tiers & K-Means Unsupervised Classification' },
+                'insights': { title: 'Strategic Quantitative Insights', subtitle: '15 Core Empirical Findings from Historical hyperliquid Data' },
+                'recommendations': { title: 'Strategic Recommendations', subtitle: 'Actionable Frameworks for Trading and Risk Management' }
+            };
+            
+            document.getElementById('panel-title').innerText = titleMap[tabId].title;
+            document.getElementById('panel-subtitle').innerText = titleMap[tabId].subtitle;
+        }
+
+        // Image Modal functions
+        function openModal(imgElement) {
+            const modal = document.getElementById('image-modal');
+            const modalImg = document.getElementById('modal-img');
+            const caption = document.getElementById('modal-caption');
+            
+            modal.style.display = "block";
+            modalImg.src = imgElement.src;
+            caption.innerText = imgElement.alt;
+        }
+
+        function closeModal() {
+            document.getElementById('image-modal').style.display = "none";
+        }
+    </script>
+</body>
+</html>
